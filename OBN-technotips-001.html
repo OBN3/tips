@@ -148,6 +148,25 @@
             cursor: pointer;
             margin-top: 1rem;
         }
+
+        .category-container {
+            margin-bottom: 10px;
+        }
+
+        .category-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .category-button:hover {
+            background-color: var(--secondary-color);
+        }
     </style>
 </head>
 <body>
@@ -160,6 +179,9 @@
             <button id="adminBtn">מנהל</button>
         </nav>
     </header>
+<!--    
+	<button onclick="displayTips('all')">הצג הכל</button>
+-->	
     <main id="tipContainer"></main>
     <button id="addTipBtn" style="display: none;">הוסף טיפ חדש</button>
     <div id="modal" class="modal">
@@ -178,7 +200,7 @@
                 <div>
                     <p>קטגוריות:</p>
                     <div class="category-checkboxes">
-                        <label><input type="checkbox" name="category" value="מקלדת"> מקלדת</label>
+                        <label><input type="checkbox" name="category" value="חלונות"> חלונות</label>
                         <label><input type="checkbox" name="category" value="סמארטפון"> סמארטפון</label>
                         <label><input type="checkbox" name="category" value="אופיס"> אופיס</label>
                         <label><input type="checkbox" name="category" value="אינטרנט"> אינטרנט</label>
@@ -201,7 +223,7 @@
                 <div>
                     <p>קטגוריות:</p>
                     <div class="category-checkboxes">
-                        <label><input type="checkbox" name="editCategory" value="מקלדת"> מקלדת</label>
+                        <label><input type="checkbox" name="editCategory" value="חלונות"> חלונות</label>
                         <label><input type="checkbox" name="editCategory" value="סמארטפון"> סמארטפון</label>
                         <label><input type="checkbox" name="editCategory" value="אופיס"> אופיס</label>
                         <label><input type="checkbox" name="editCategory" value="אינטרנט"> אינטרנט</label>
@@ -227,39 +249,19 @@
 
         async function fetchTips() {
             try {
-                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-                    headers: {
-                        'Authorization': `token ${fullToken}`,
-                    }
-                });
-                
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`);
                 if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error('Unauthorized: Check your GitHub token');
-                    } else if (response.status === 404) {
-                        console.log('Tips file not found. Starting with an empty array.');
-                        tips = [];
-                        return;
-                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
                 const data = await response.json();
-                
-                if (!data.content) {
-                    console.log('Tips file is empty. Starting with an empty array.');
-                    tips = [];
-                    return;
-                }
-                
-                const content = atob(data.content);
+                const content = decodeURIComponent(escape(atob(data.content)));
                 const jsonData = JSON.parse(content);
-                tips = (jsonData.tips || []).map(tip => ({
+                tips = jsonData.tips.map(tip => ({
                     ...tip,
                     date: new Date(tip.date)
                 }));
-                
                 tips.sort((a, b) => b.date - a.date);
+                categories = new Set();
                 tips.forEach(tip => {
                     if (Array.isArray(tip.category)) {
                         tip.category.forEach(cat => categories.add(cat));
@@ -267,17 +269,19 @@
                         categories.add(tip.category);
                     }
                 });
-                
                 populateCategoryFilter();
                 displayTips();
             } catch (error) {
                 console.error('Error fetching tips:', error);
-                alert('שגיאה בטעינת הטיפים. אנא בדוק את הגדרות הגישה לGitHub ונסה שוב.');
-                tips = []; // במקרה של שגיאה, נתחיל עם מערך ריק
+                alert('שגיאה בטעינת הטיפים. אנא נסה שוב מאוחר יותר.');
             }
         }
 
         async function saveTips() {
+            if (!isAdmin) {
+                alert('רק מנהל יכול לשמור שינויים');
+                return;
+            }
             try {
                 const currentSHA = await getFileSHA();
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify({ tips }, null, 2))));
@@ -296,20 +300,12 @@
                 });
 
                 if (!response.ok) {
-                    if (response.status === 409) {
-                        console.log('Conflict detected, retrying with updated data');
-                        await fetchTips();
-                        await saveTips();
-                    } else {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                } else {
-                    console.log('Tips saved successfully to GitHub');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                console.log('Tips saved successfully to GitHub');
             } catch (error) {
                 console.error('Error saving to GitHub:', error);
-                alert('שגיאה בשמירת הנתונים לשרת. הנתונים נשמרו מקומית.');
-                localStorage.setItem('tips', JSON.stringify(tips));
+                alert('שגיאה בשמירת הנתונים לשרת.');
             }
         }
 
@@ -326,7 +322,7 @@
         function populateCategoryFilter() {
             const select = document.getElementById('categoryFilter');
             select.innerHTML = '<option value="all">כל הקטגוריות</option>';
-            categories.forEach(category => {
+            Array.from(categories).sort().forEach(category => {
                 const option = document.createElement('option');
                 option.value = category;
                 option.textContent = category;
@@ -335,15 +331,21 @@
         }
 
         function displayTips(category = 'all') {
+		    document.getElementById('categoryFilter').value = category;
             const container = document.getElementById('tipContainer');
             container.innerHTML = '';
             tips.filter(tip => category === 'all' || (Array.isArray(tip.category) ? tip.category.includes(category) : tip.category === category))
                 .forEach(tip => {
                     const card = document.createElement('div');
                     card.className = 'tip-card';
+                    const categories = Array.isArray(tip.category) ? tip.category : [tip.category];
+                    const categoryButtons = categories.map(cat => 
+                        `<button class="category-button" onclick="toggleCategory('${cat}')">${cat}</button>`
+                    ).join(' ');
                     card.innerHTML = `
                         <h3>${tip.title}</h3>
                         <p>${tip.description.substring(0, 100)}...</p>
+                        <div class="category-container">${categoryButtons}</div>
                         <button onclick="openModal(${tip.id})">קרא עוד</button>
                         ${isAdmin ? `<button class="edit-button" onclick="openEditModal(${tip.id})">ערוך</button>` : ''}
                     `;
@@ -351,14 +353,35 @@
                 });
         }
 
+//        function toggleCategory(category) {
+//            const currentCategory = document.getElementById('categoryFilter').value;
+//            if (currentCategory === category) {
+//                displayTips('all');
+//                document.getElementById('categoryFilter').value = 'all';
+//            } else {
+//                displayTips(category);
+//                document.getElementById('categoryFilter').value = category;
+//            }
+//        }
+
+		function toggleCategory(category) {
+			document.getElementById('categoryFilter').value = category;
+			displayTips(category);
+		}
+
+
         function openModal(tipId) {
             const tip = tips.find(t => t.id === tipId);
             const modal = document.getElementById('modal');
             const modalContent = document.getElementById('modalContent');
+            const categories = Array.isArray(tip.category) ? tip.category : [tip.category];
+            const categoryButtons = categories.map(cat => 
+                `<button class="category-button" onclick="toggleCategory('${cat}'); closeModal();">${cat}</button>`
+            ).join(' ');
             modalContent.innerHTML = `
                 <h2>${tip.title}</h2>
                 <p>${tip.description}</p>
-                <p>קטגוריה: ${Array.isArray(tip.category) ? tip.category.join(', ') : tip.category}</p>
+                <div class="category-container">${categoryButtons}</div>
                 <p>תאריך: ${tip.date.toLocaleDateString()}</p>
                 <button onclick="printTip(${tipId})">הדפס</button>
             `;
@@ -395,6 +418,10 @@
         }
 
         function openAdminModal() {
+            if (!isAdmin) {
+                alert('רק מנהל יכול להוסיף טיפים חדשים');
+                return;
+            }
             document.getElementById('adminModal').style.display = 'block';
             document.getElementById('newTitle').value = '';
             document.getElementById('newDescription').value = '';
@@ -403,6 +430,10 @@
         }
 
         function openEditModal(tipId) {
+            if (!isAdmin) {
+                alert('רק מנהל יכול לערוך טיפים');
+                return;
+            }
             const tip = tips.find(t => t.id === tipId);
             document.getElementById('editTipId').value = tip.id;
             document.getElementById('editTitle').value = tip.title;
@@ -496,9 +527,9 @@
                 isAdmin = true;
                 alert('גישת מנהל אושרה');
                 document.getElementById('addTipBtn').style.display = 'block';
-                fetchTips(); // טען את הטיפים מחדש עם הטוקן המלא
+                displayTips(); // מציג מחדש את הטיפים עם כפתורי עריכה
             } else {
-                alert('נא להזין 5 תווים בדיוק');
+                alert('סיסמה שגויה');
             }
         });
 
@@ -514,4 +545,8 @@
         fetchTips();
     </script>
 </body>
-</html>
+</html>						
+
+
+
+						
