@@ -398,4 +398,122 @@
             document.getElementById('newTitle').value = '';
             document.getElementById('newDescription').value = '';
             document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[name
+            document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = false);
+        }
+
+        function openEditModal(tipId) {
+            const tip = tips.find(t => t.id === tipId);
+            document.getElementById('editTipId').value = tip.id;
+            document.getElementById('editTitle').value = tip.title;
+            document.getElementById('editDescription').value = tip.description;
+            document.getElementById('editDate').value = tip.date.toISOString().split('T')[0];
+            
+            const categoryCheckboxes = document.querySelectorAll('input[name="editCategory"]');
+            categoryCheckboxes.forEach(checkbox => {
+                checkbox.checked = Array.isArray(tip.category) ? tip.category.includes(checkbox.value) : tip.category === checkbox.value;
+            });
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        async function addNewTip(event) {
+            event.preventDefault();
+            if (!isAdmin) {
+                alert('רק מנהל יכול להוסיף טיפים חדשים');
+                return;
+            }
+            const newTip = {
+                id: tips.length + 1,
+                title: document.getElementById('newTitle').value,
+                description: document.getElementById('newDescription').value,
+                category: Array.from(document.querySelectorAll('input[name="category"]:checked')).map(cb => cb.value),
+                date: new Date(document.getElementById('newDate').value)
+            };
+            tips.push(newTip);
+            newTip.category.forEach(cat => categories.add(cat));
+            populateCategoryFilter();
+            displayTips();
+            closeModal();
+
+            try {
+                await saveTips();
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                alert('שגיאה בשמירת הטיפ החדש. אנא נסה שוב מאוחר יותר.');
+            }
+        }
+
+        async function editTip(event) {
+            event.preventDefault();
+            if (!isAdmin) {
+                alert('רק מנהל יכול לערוך טיפים');
+                return;
+            }
+            const tipId = parseInt(document.getElementById('editTipId').value);
+            const updatedTip = {
+                id: tipId,
+                title: document.getElementById('editTitle').value,
+                description: document.getElementById('editDescription').value,
+                category: Array.from(document.querySelectorAll('input[name="editCategory"]:checked')).map(cb => cb.value),
+                date: new Date(document.getElementById('editDate').value)
+            };
+            const index = tips.findIndex(t => t.id === tipId);
+            tips[index] = updatedTip;
+            updatedTip.category.forEach(cat => categories.add(cat));
+            populateCategoryFilter();
+            displayTips();
+            closeModal();
+
+            try {
+                await saveTips();
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                alert('שגיאה בשמירת השינויים. אנא נסה שוב מאוחר יותר.');
+            }
+        }
+
+        document.getElementById('categoryFilter').addEventListener('change', (e) => {
+            displayTips(e.target.value);
+        });
+
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', closeModal);
+        });
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('modal') || 
+                event.target == document.getElementById('adminModal') ||
+                event.target == document.getElementById('editModal')) {
+                closeModal();
+            }
+        }
+
+        document.getElementById('adminBtn').addEventListener('click', () => {
+            const password = prompt('הכנס סיסמת מנהל:');
+            if (password === 'Admin') {
+                isAdmin = true;
+                alert('גישת מנהל אושרה');
+                document.getElementById('addTipBtn').style.display = 'block';
+                displayTips();
+            } else {
+                alert('סיסמה שגויה');
+            }
+        });
+
+        document.getElementById('addTipBtn').addEventListener('click', () => {
+            if (isAdmin) {
+                openAdminModal();
+            }
+        });
+
+        document.getElementById('addTipForm').addEventListener('submit', addNewTip);
+        document.getElementById('editTipForm').addEventListener('submit', editTip);
+
+        fetchTips();
+    </script>
+</body>
+</html>
+
+
+
+
