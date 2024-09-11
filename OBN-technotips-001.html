@@ -219,29 +219,39 @@
         let categories = new Set();
         let isAdmin = false;
 
-        async function fetchTips() {
-            try {
-                const response = await fetch('tips.json');
-                const data = await response.json();
-                tips = data.tips.map(tip => ({
-                    ...tip,
-                    date: new Date(tip.date)
-                }));
-                tips.sort((a, b) => b.date - a.date);
-                tips.forEach(tip => {
-                    if (Array.isArray(tip.category)) {
-                        tip.category.forEach(cat => categories.add(cat));
-                    } else {
-                        categories.add(tip.category);
-                    }
-                });
-                populateCategoryFilter();
-                displayTips();
-            } catch (error) {
-                console.error('Error fetching tips:', error);
-                alert('שגיאה בטעינת הטיפים. אנא נסה שוב מאוחר יותר.');
-            }
-        }
+		async function fetchTips() {
+			try {
+				const response = await fetch('tips.json');
+				if (!response.ok) {
+					throw new Error('Network response was not ok');
+				}
+				const text = await response.text();
+				if (!text) {
+					// קובץ ריק
+					tips = [];
+				} else {
+					const data = JSON.parse(text);
+					tips = (data.tips || []).map(tip => ({
+						...tip,
+						date: new Date(tip.date)
+					}));
+				}
+				tips.sort((a, b) => b.date - a.date);
+				tips.forEach(tip => {
+					if (Array.isArray(tip.category)) {
+						tip.category.forEach(cat => categories.add(cat));
+					} else if (tip.category) {
+						categories.add(tip.category);
+					}
+				});
+				populateCategoryFilter();
+				displayTips();
+			} catch (error) {
+				console.error('Error fetching tips:', error);
+				tips = []; // במקרה של שגיאה, נתחיל עם מערך ריק
+				alert('שגיאה בטעינת הטיפים. מתחיל עם רשימה ריקה.');
+			}
+		}
 
         function populateCategoryFilter() {
             const select = document.getElementById('categoryFilter');
@@ -394,23 +404,23 @@
             }
         }
 
-        async function saveTips() {
-            try {
-                const response = await fetch('tips.json', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ tips: tips }),
-                });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-            } catch (error) {
-                console.error('Error saving tips:', error);
-                throw error;
-            }
-        }
+		async function saveTips() {
+			try {
+				const response = await fetch('tips.json', {
+					method: 'PUT', // שימוש ב-PUT במקום POST כדי ליצור או לעדכן את הקובץ
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ tips: tips }),
+				});
+				if (!response.ok) {
+					throw new Error('Network response was not ok');
+				}
+			} catch (error) {
+				console.error('Error saving tips:', error);
+				throw error;
+			}
+		}
 
         document.getElementById('categoryFilter').addEventListener('change', (e) => {
             displayTips(e.target.value);
