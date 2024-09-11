@@ -92,20 +92,61 @@
             cursor: pointer;
         }
 
-        #editForm {
+        #addTipForm, #editTipForm {
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
 
-        #editForm input,
-        #editForm textarea {
-            width: 100%;
+        #addTipForm input,
+        #addTipForm textarea,
+        #editTipForm input,
+        #editTipForm textarea {
             padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
         }
 
-        #editForm button {
-            align-self: flex-start;
+        #addTipForm button,
+        #editTipForm button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .category-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .category-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .edit-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        #addTipBtn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
         }
     </style>
 </head>
@@ -120,16 +161,63 @@
         </nav>
     </header>
     <main id="tipContainer"></main>
+    <button id="addTipBtn" style="display: none;">הוסף טיפ חדש</button>
     <div id="modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <div id="modalContent"></div>
         </div>
     </div>
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>הוספת טיפ חדש</h2>
+            <form id="addTipForm">
+                <input type="text" id="newTitle" placeholder="כותרת" required>
+                <textarea id="newDescription" placeholder="תיאור" required></textarea>
+                <div>
+                    <p>קטגוריות:</p>
+                    <div class="category-checkboxes">
+                        <label><input type="checkbox" name="category" value="מקלדת"> מקלדת</label>
+                        <label><input type="checkbox" name="category" value="סמארטפון"> סמארטפון</label>
+                        <label><input type="checkbox" name="category" value="אופיס"> אופיס</label>
+                        <label><input type="checkbox" name="category" value="אינטרנט"> אינטרנט</label>
+                        <label><input type="checkbox" name="category" value="אחר"> אחר</label>
+                    </div>
+                </div>
+                <input type="date" id="newDate" required>
+                <button type="submit">הוסף טיפ</button>
+            </form>
+        </div>
+    </div>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>עריכת טיפ</h2>
+            <form id="editTipForm">
+                <input type="hidden" id="editTipId">
+                <input type="text" id="editTitle" placeholder="כותרת" required>
+                <textarea id="editDescription" placeholder="תיאור" required></textarea>
+                <div>
+                    <p>קטגוריות:</p>
+                    <div class="category-checkboxes">
+                        <label><input type="checkbox" name="editCategory" value="מקלדת"> מקלדת</label>
+                        <label><input type="checkbox" name="editCategory" value="סמארטפון"> סמארטפון</label>
+                        <label><input type="checkbox" name="editCategory" value="אופיס"> אופיס</label>
+                        <label><input type="checkbox" name="editCategory" value="אינטרנט"> אינטרנט</label>
+                        <label><input type="checkbox" name="editCategory" value="אחר"> אחר</label>
+                    </div>
+                </div>
+                <input type="date" id="editDate" required>
+                <button type="submit">שמור שינויים</button>
+            </form>
+        </div>
+    </div>
 
     <script>
         let tips = [];
         let categories = new Set();
+        let isAdmin = false;
 
         async function fetchTips() {
             try {
@@ -140,7 +228,13 @@
                     date: new Date(tip.date)
                 }));
                 tips.sort((a, b) => b.date - a.date);
-                tips.forEach(tip => categories.add(tip.category));
+                tips.forEach(tip => {
+                    if (Array.isArray(tip.category)) {
+                        tip.category.forEach(cat => categories.add(cat));
+                    } else {
+                        categories.add(tip.category);
+                    }
+                });
                 populateCategoryFilter();
                 displayTips();
             } catch (error) {
@@ -151,6 +245,7 @@
 
         function populateCategoryFilter() {
             const select = document.getElementById('categoryFilter');
+            select.innerHTML = '<option value="all">כל הקטגוריות</option>';
             categories.forEach(category => {
                 const option = document.createElement('option');
                 option.value = category;
@@ -162,7 +257,7 @@
         function displayTips(category = 'all') {
             const container = document.getElementById('tipContainer');
             container.innerHTML = '';
-            tips.filter(tip => category === 'all' || tip.category === category)
+            tips.filter(tip => category === 'all' || (Array.isArray(tip.category) ? tip.category.includes(category) : tip.category === category))
                 .forEach(tip => {
                     const card = document.createElement('div');
                     card.className = 'tip-card';
@@ -170,6 +265,7 @@
                         <h3>${tip.title}</h3>
                         <p>${tip.description.substring(0, 100)}...</p>
                         <button onclick="openModal(${tip.id})">קרא עוד</button>
+                        ${isAdmin ? `<button class="edit-button" onclick="openEditModal(${tip.id})">ערוך</button>` : ''}
                     `;
                     container.appendChild(card);
                 });
@@ -182,7 +278,7 @@
             modalContent.innerHTML = `
                 <h2>${tip.title}</h2>
                 <p>${tip.description}</p>
-                <p>קטגוריה: ${tip.category}</p>
+                <p>קטגוריה: ${Array.isArray(tip.category) ? tip.category.join(', ') : tip.category}</p>
                 <p>תאריך: ${tip.date.toLocaleDateString()}</p>
                 <button onclick="printTip(${tipId})">הדפס</button>
             `;
@@ -191,6 +287,8 @@
 
         function closeModal() {
             document.getElementById('modal').style.display = 'none';
+            document.getElementById('adminModal').style.display = 'none';
+            document.getElementById('editModal').style.display = 'none';
         }
 
         function printTip(tipId) {
@@ -207,7 +305,7 @@
                     <body>
                         <h1>${tip.title}</h1>
                         <p>${tip.description}</p>
-                        <p>קטגוריה: ${tip.category}</p>
+                        <p>קטגוריה: ${Array.isArray(tip.category) ? tip.category.join(', ') : tip.category}</p>
                         <p>תאריך: ${tip.date.toLocaleDateString()}</p>
                     </body>
                 </html>
@@ -216,50 +314,110 @@
             printWindow.print();
         }
 
-        function openEditModal(tipId) {
-            const tip = tips.find(t => t.id === tipId);
-            const modal = document.getElementById('modal');
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = `
-                <h2>עריכת טיפ</h2>
-                <form id="editForm">
-                    <input type="text" id="editTitle" value="${tip.title}" required>
-                    <textarea id="editDescription" required>${tip.description}</textarea>
-                    <input type="text" id="editCategory" value="${tip.category}" required>
-                    <input type="date" id="editDate" value="${tip.date.toISOString().split('T')[0]}" required>
-                    <button type="submit">שמור שינויים</button>
-                </form>
-            `;
-            document.getElementById('editForm').onsubmit = (e) => {
-                e.preventDefault();
-                saveTipChanges(tipId);
-            };
-            modal.style.display = 'block';
+        function openAdminModal() {
+            document.getElementById('adminModal').style.display = 'block';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newDescription').value = '';
+            document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = false);
         }
 
-        function saveTipChanges(tipId) {
+        function openEditModal(tipId) {
+            const tip = tips.find(t => t.id === tipId);
+            document.getElementById('editTipId').value = tip.id;
+            document.getElementById('editTitle').value = tip.title;
+            document.getElementById('editDescription').value = tip.description;
+            document.getElementById('editDate').value = tip.date.toISOString().split('T')[0];
+            
+            const categoryCheckboxes = document.querySelectorAll('input[name="editCategory"]');
+            categoryCheckboxes.forEach(checkbox => {
+                checkbox.checked = Array.isArray(tip.category) ? tip.category.includes(checkbox.value) : tip.category === checkbox.value;
+            });
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        async function addNewTip(event) {
+            event.preventDefault();
+            if (!isAdmin) {
+                alert('רק מנהל יכול להוסיף טיפים חדשים');
+                return;
+            }
+            const newTip = {
+                id: tips.length + 1,
+                title: document.getElementById('newTitle').value,
+                description: document.getElementById('newDescription').value,
+                category: Array.from(document.querySelectorAll('input[name="category"]:checked')).map(cb => cb.value),
+                date: new Date(document.getElementById('newDate').value)
+            };
+            tips.push(newTip);
+            newTip.category.forEach(cat => categories.add(cat));
+            populateCategoryFilter();
+            displayTips();
+            closeModal();
+
+            try {
+                await saveTips();
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                alert('שגיאה בשמירת הטיפ החדש. אנא נסה שוב מאוחר יותר.');
+            }
+        }
+
+        async function editTip(event) {
+            event.preventDefault();
+            if (!isAdmin) {
+                alert('רק מנהל יכול לערוך טיפים');
+                return;
+            }
+            const tipId = parseInt(document.getElementById('editTipId').value);
             const updatedTip = {
                 id: tipId,
                 title: document.getElementById('editTitle').value,
                 description: document.getElementById('editDescription').value,
-                category: document.getElementById('editCategory').value,
+                category: Array.from(document.querySelectorAll('input[name="editCategory"]:checked')).map(cb => cb.value),
                 date: new Date(document.getElementById('editDate').value)
             };
             const index = tips.findIndex(t => t.id === tipId);
             tips[index] = updatedTip;
-            closeModal();
+            updatedTip.category.forEach(cat => categories.add(cat));
+            populateCategoryFilter();
             displayTips();
-            // כאן יש להוסיף לוגיקה לשמירת השינויים בקובץ JSON בצד השרת
+            closeModal();
+
+            try {
+                await saveTips();
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                alert('שגיאה בשמירת השינויים. אנא נסה שוב מאוחר יותר.');
+            }
+        }
+
+        async function saveTips() {
+            const response = await fetch('tips.json', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tips: tips }),
+            });
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
         }
 
         document.getElementById('categoryFilter').addEventListener('change', (e) => {
             displayTips(e.target.value);
         });
 
-        document.querySelector('.close').addEventListener('click', closeModal);
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', closeModal);
+        });
 
         window.onclick = function(event) {
-            if (event.target == document.getElementById('modal')) {
+            if (event.target == document.getElementById('modal') || 
+                event.target == document.getElementById('adminModal') ||
+                event.target == document.getElementById('editModal')) {
                 closeModal();
             }
         }
@@ -267,18 +425,25 @@
         document.getElementById('adminBtn').addEventListener('click', () => {
             const password = prompt('הכנס סיסמת מנהל:');
             if (password === 'Admin') {
-                tips.forEach(tip => {
-                    const editButton = document.createElement('button');
-                    editButton.textContent = 'ערוך';
-                    editButton.onclick = () => openEditModal(tip.id);
-                    document.querySelector(`.tip-card:nth-child(${tip.id}) button`).after(editButton);
-                });
+                isAdmin = true;
+                alert('גישת מנהל אושרה');
+                document.getElementById('addTipBtn').style.display = 'block';
+                displayTips();
             } else {
                 alert('סיסמה שגויה');
             }
         });
 
+        document.getElementById('addTipBtn').addEventListener('click', () => {
+            if (isAdmin) {
+                openAdminModal();
+            }
+        });
+
+        document.getElementById('addTipForm').addEventListener('submit', addNewTip);
+        document.getElementById('editTipForm').addEventListener('submit', editTip);
+
         fetchTips();
     </script>
 </body>
-</html>
+</html>				
