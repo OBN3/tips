@@ -484,7 +484,7 @@
         window.onclick = function(event) {
             if (event.target == document.getElementById('modal') || 
                 event.target == document.getElementById('adminModal') ||
-                event.getElementById('editModal')) {
+                event.target == document.getElementById('editModal')) {
                 closeModal();
             }
         }
@@ -496,9 +496,9 @@
                 isAdmin = true;
                 alert('גישת מנהל אושרה');
                 document.getElementById('addTipBtn').style.display = 'block';
-                displayTips();
+                fetchTips(); // טען את הטיפים מחדש עם הטוקן המלא
             } else {
-                alert('סיסמה שגויה');
+                alert('נא להזין 5 תווים בדיוק');
             }
         });
 
@@ -515,9 +515,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-			
