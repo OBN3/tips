@@ -379,6 +379,7 @@
                 date: new Date(document.getElementById('editDate').value)
             };
             const index = tips.findIndex(t => t.id === tipId);
+			
             tips[index] = updatedTip;
             updatedTip.category.forEach(cat => categories.add(cat));
             populateCategoryFilter();
@@ -394,15 +395,20 @@
         }
 
         async function saveTips() {
-            const response = await fetch('tips.json', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ tips: tips }),
-            });
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+            try {
+                const response = await fetch('tips.json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tips: tips }),
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                throw error;
             }
         }
 
@@ -446,4 +452,6 @@
         fetchTips();
     </script>
 </body>
-</html>				
+</html>
+
+			
