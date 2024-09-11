@@ -215,14 +215,15 @@
     </div>
 
     <script>
-		const owner = 'OBN3';
-		const repo = 'tips';
-		const path = 'tips.json';
-		const fullToken = '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';		
+        const owner = 'OBN3';
+        const repo = 'tips';
+        const path = 'tips.json';
+        const partialToken = 'github_pat_11BKNOHJY0uS4DoU9gtIX7_9OyZnEMpBFz47utPKwCwrMMzS0aP15IJgXyaMWHLzGkDP7DVH32KNT'; // החלף זאת בטוקן החלקי שלך
 
         let tips = [];
         let categories = new Set();
         let isAdmin = false;
+        let fullToken = '';
 
         async function fetchTips() {
             try {
@@ -483,14 +484,15 @@
         window.onclick = function(event) {
             if (event.target == document.getElementById('modal') || 
                 event.target == document.getElementById('adminModal') ||
-                event.target == document.getElementById('editModal')) {
+                event.getElementById('editModal')) {
                 closeModal();
             }
         }
 
         document.getElementById('adminBtn').addEventListener('click', () => {
-            const password = prompt('הכנס סיסמת מנהל:');
-            if (password === 'Admin') {
+            const password = prompt('הכנס את 5 התווים האחרונים של הטוקן:');
+            if (password && password.length === 5) {
+                fullToken = partialToken + password;
                 isAdmin = true;
                 alert('גישת מנהל אושרה');
                 document.getElementById('addTipBtn').style.display = 'block';
@@ -517,3 +519,5 @@
 
 
 
+
+			
