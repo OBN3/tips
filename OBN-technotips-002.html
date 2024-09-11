@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>טכנוטיפים</title>
+    <style>
+        :root {
+            --primary-color: #87CEEB;
+            --secondary-color: #FFA500;
+            --background-color: #F0F8FF;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            color: white;
+        }
+
+        nav {
+            display: flex;
+            gap: 1rem;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .tip-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .tip-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .close {
+            color: #aaa;
+            float: left;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #addTipForm, #editTipForm {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #addTipForm input,
+        #addTipForm textarea,
+        #editTipForm input,
+        #editTipForm textarea {
+            padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #addTipForm button,
+        #editTipForm button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .category-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .category-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .edit-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        #addTipBtn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .category-container {
+            margin-bottom: 10px;
+        }
+
+        .category-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .category-button:hover {
+            background-color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>טכנוטיפים</h1>
+        <nav>
+            <select id="categoryFilter">
+                <option value="all">כל הקטגוריות</option>
+            </select>
+            <button id="adminBtn">מנהל</button>
+        </nav>
+    </header>
+<!--    
+	<button onclick="displayTips('all')">הצג הכל</button>
+-->	
+    <main id="tipContainer"></main>
+    <button id="addTipBtn" style="display: none;">הוסף טיפ חדש</button>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>הוספת טיפ חדש</h2>
+            <form id="addTipForm">
+                <input type="text" id="newTitle" placeholder="כותרת" required>
+                <textarea id="newDescription" placeholder="תיאור" required></textarea>
+                <div>
+                    <p>קטגוריות:</p>
+                    <div class="category-checkboxes">
+                        <label><input type="checkbox" name="category" value="חלונות"> חלונות</label>
+                        <label><input type="checkbox" name="category" value="סמארטפון"> סמארטפון</label>
+                        <label><input type="checkbox" name="category" value="אופיס"> אופיס</label>
+                        <label><input type="checkbox" name="category" value="אינטרנט"> אינטרנט</label>
+                        <label><input type="checkbox" name="category" value="אחר"> אחר</label>
+                    </div>
+                </div>
+                <input type="date" id="newDate" required>
+                <button type="submit">הוסף טיפ</button>
+            </form>
+        </div>
+    </div>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>עריכת טיפ</h2>
+            <form id="editTipForm">
+                <input type="hidden" id="editTipId">
+                <input type="text" id="editTitle" placeholder="כותרת" required>
+                <textarea id="editDescription" placeholder="תיאור" required></textarea>
+                <div>
+                    <p>קטגוריות:</p>
+                    <div class="category-checkboxes">
+                        <label><input type="checkbox" name="editCategory" value="חלונות"> חלונות</label>
+                        <label><input type="checkbox" name="editCategory" value="סמארטפון"> סמארטפון</label>
+                        <label><input type="checkbox" name="editCategory" value="אופיס"> אופיס</label>
+                        <label><input type="checkbox" name="editCategory" value="אינטרנט"> אינטרנט</label>
+                        <label><input type="checkbox" name="editCategory" value="אחר"> אחר</label>
+                    </div>
+                </div>
+                <input type="date" id="editDate" required>
+                <button type="submit">שמור שינויים</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const owner = 'OBN3';
+        const repo = 'tips';
+        const path = 'tips.json';
+        const partialToken = 'github_pat_11BKNOHJY0uS4DoU9gtIX7_9OyZnEMpBFz47utPKwCwrMMzS0aP15IJgXyaMWHLzGkDP7DVH32KNT'; // החלף זאת בטוקן החלקי שלך
+
+        let tips = [];
+        let categories = new Set();
+        let isAdmin = false;
+        let fullToken = '';
+
+		 async function fetchTips() {
+			try {
+				const response = await fetch('https://raw.githubusercontent.com/OBN3/tips/main/tips.json');
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+				const data = await response.json();
+				tips = data.tips.map(tip => ({
+					...tip,
+					date: new Date(tip.date)
+				}));
+				tips.sort((a, b) => b.date - a.date);
+				categories = new Set();
+				tips.forEach(tip => {
+					if (Array.isArray(tip.category)) {
+						tip.category.forEach(cat => categories.add(cat));
+					} else if (tip.category) {
+						categories.add(tip.category);
+					}
+				});
+				populateCategoryFilter();
+				displayTips();
+			} catch (error) {
+				console.error('Error fetching tips:', error);
+				alert('שגיאה בטעינת הטיפים. אנא נסה שוב מאוחר יותר.');
+			}
+		}
+
+        async function saveTips() {
+            if (!isAdmin) {
+                alert('רק מנהל יכול לשמור שינויים');
+                return;
+            }
+            try {
+                const currentSHA = await getFileSHA();
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify({ tips }, null, 2))));
+
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${fullToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Update tips data',
+                        content: content,
+                        sha: currentSHA,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                console.log('Tips saved successfully to GitHub');
+            } catch (error) {
+                console.error('Error saving to GitHub:', error);
+                alert('שגיאה בשמירת הנתונים לשרת.');
+            }
+        }
+
+        async function getFileSHA() {
+            const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                headers: {
+                    'Authorization': `token ${fullToken}`,
+                }
+            });
+            const data = await response.json();
+            return data.sha;
+        }
+
+        function populateCategoryFilter() {
+            const select = document.getElementById('categoryFilter');
+            select.innerHTML = '<option value="all">כל הקטגוריות</option>';
+            Array.from(categories).sort().forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+        }
+
+        function displayTips(category = 'all') {
+		    document.getElementById('categoryFilter').value = category;
+            const container = document.getElementById('tipContainer');
+            container.innerHTML = '';
+            tips.filter(tip => category === 'all' || (Array.isArray(tip.category) ? tip.category.includes(category) : tip.category === category))
+                .forEach(tip => {
+                    const card = document.createElement('div');
+                    card.className = 'tip-card';
+                    const categories = Array.isArray(tip.category) ? tip.category : [tip.category];
+                    const categoryButtons = categories.map(cat => 
+                        `<button class="category-button" onclick="toggleCategory('${cat}')">${cat}</button>`
+                    ).join(' ');
+                    card.innerHTML = `
+                        <h3>${tip.title}</h3>
+                        <p>${tip.description.substring(0, 100)}...</p>
+                        <div class="category-container">${categoryButtons}</div>
+                        <button onclick="openModal(${tip.id})">קרא עוד</button>
+                        ${isAdmin ? `<button class="edit-button" onclick="openEditModal(${tip.id})">ערוך</button>` : ''}
+                    `;
+                    container.appendChild(card);
+                });
+        }
+
+//        function toggleCategory(category) {
+//            const currentCategory = document.getElementById('categoryFilter').value;
+//            if (currentCategory === category) {
+//                displayTips('all');
+//                document.getElementById('categoryFilter').value = 'all';
+//            } else {
+//                displayTips(category);
+//                document.getElementById('categoryFilter').value = category;
+//            }
+//        }
+
+		function toggleCategory(category) {
+			document.getElementById('categoryFilter').value = category;
+			displayTips(category);
+		}
+
+
+        function openModal(tipId) {
+            const tip = tips.find(t => t.id === tipId);
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modalContent');
+            const categories = Array.isArray(tip.category) ? tip.category : [tip.category];
+            const categoryButtons = categories.map(cat => 
+                `<button class="category-button" onclick="toggleCategory('${cat}'); closeModal();">${cat}</button>`
+            ).join(' ');
+            modalContent.innerHTML = `
+                <h2>${tip.title}</h2>
+                <p>${tip.description}</p>
+                <div class="category-container">${categoryButtons}</div>
+                <p>תאריך: ${tip.date.toLocaleDateString()}</p>
+                <button onclick="printTip(${tipId})">הדפס</button>
+            `;
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('adminModal').style.display = 'none';
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function printTip(tipId) {
+            const tip = tips.find(t => t.id === tipId);
+            const printWindow = window.open('', '', 'width=600,height=600');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>${tip.title}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${tip.title}</h1>
+                        <p>${tip.description}</p>
+                        <p>קטגוריה: ${Array.isArray(tip.category) ? tip.category.join(', ') : tip.category}</p>
+                        <p>תאריך: ${tip.date.toLocaleDateString()}</p>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function openAdminModal() {
+            if (!isAdmin) {
+                alert('רק מנהל יכול להוסיף טיפים חדשים');
+                return;
+            }
+            document.getElementById('adminModal').style.display = 'block';
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newDescription').value = '';
+            document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[name="category"]').forEach(cb => cb.checked = false);
+        }
+
+        function openEditModal(tipId) {
+            if (!isAdmin) {
+                alert('רק מנהל יכול לערוך טיפים');
+                return;
+            }
+            const tip = tips.find(t => t.id === tipId);
+            document.getElementById('editTipId').value = tip.id;
+            document.getElementById('editTitle').value = tip.title;
+            document.getElementById('editDescription').value = tip.description;
+            document.getElementById('editDate').value = tip.date.toISOString().split('T')[0];
+            
+            const categoryCheckboxes = document.querySelectorAll('input[name="editCategory"]');
+            categoryCheckboxes.forEach(checkbox => {
+                checkbox.checked = Array.isArray(tip.category) ? tip.category.includes(checkbox.value) : tip.category === checkbox.value;
+            });
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        async function addNewTip(event) {
+            event.preventDefault();
+            if (!isAdmin) {
+                alert('רק מנהל יכול להוסיף טיפים חדשים');
+                return;
+            }
+            const newTip = {
+                id: tips.length + 1,
+                title: document.getElementById('newTitle').value,
+                description: document.getElementById('newDescription').value,
+                category: Array.from(document.querySelectorAll('input[name="category"]:checked')).map(cb => cb.value),
+                date: new Date(document.getElementById('newDate').value)
+            };
+            tips.push(newTip);
+            newTip.category.forEach(cat => categories.add(cat));
+            populateCategoryFilter();
+            displayTips();
+            closeModal();
+
+            try {
+                await saveTips();
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                alert('שגיאה בשמירת הטיפ החדש. אנא נסה שוב מאוחר יותר.');
+            }
+        }
+
+        async function editTip(event) {
+            event.preventDefault();
+            if (!isAdmin) {
+                alert('רק מנהל יכול לערוך טיפים');
+                return;
+            }
+            const tipId = parseInt(document.getElementById('editTipId').value);
+            const updatedTip = {
+                id: tipId,
+                title: document.getElementById('editTitle').value,
+                description: document.getElementById('editDescription').value,
+                category: Array.from(document.querySelectorAll('input[name="editCategory"]:checked')).map(cb => cb.value),
+                date: new Date(document.getElementById('editDate').value)
+            };
+            const index = tips.findIndex(t => t.id === tipId);
+            tips[index] = updatedTip;
+            updatedTip.category.forEach(cat => categories.add(cat));
+            populateCategoryFilter();
+            displayTips();
+            closeModal();
+
+            try {
+                await saveTips();
+            } catch (error) {
+                console.error('Error saving tips:', error);
+                alert('שגיאה בשמירת השינויים. אנא נסה שוב מאוחר יותר.');
+            }
+        }
+
+        document.getElementById('categoryFilter').addEventListener('change', (e) => {
+            displayTips(e.target.value);
+        });
+
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', closeModal);
+        });
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('modal') || 
+                event.target == document.getElementById('adminModal') ||
+                event.target == document.getElementById('editModal')) {
+                closeModal();
+            }
+        }
+
+        document.getElementById('adminBtn').addEventListener('click', () => {
+            const password = prompt('הכנס את 5 התווים האחרונים של הטוקן:');
+            if (password && password.length === 5) {
+                fullToken = partialToken + password;
+                isAdmin = true;
+                alert('גישת מנהל אושרה');
+                document.getElementById('addTipBtn').style.display = 'block';
+                displayTips(); // מציג מחדש את הטיפים עם כפתורי עריכה
+            } else {
+                alert('סיסמה שגויה');
+            }
+        });
+
+        document.getElementById('addTipBtn').addEventListener('click', () => {
+            if (isAdmin) {
+                openAdminModal();
+            }
+        });
+
+        document.getElementById('addTipForm').addEventListener('submit', addNewTip);
+        document.getElementById('editTipForm').addEventListener('submit', editTip);
+
+        fetchTips();
+    </script>
+</body>
+</html>						
+
+
+
+						
