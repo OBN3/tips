@@ -220,7 +220,8 @@
 				GV_Setup_Map();
 				
 				<?php
-					$path_to_tracks = '/tutorials/tracks/';
+					// $path_to_tracks = '/tutorials/tracks/';
+					$path_to_tracks = '/';
 					if ($_REQUEST['track']) {
 						$GPX_PATH = $path_to_tracks.$_REQUEST['track'].".gpx";
 					}
