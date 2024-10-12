@@ -86,12 +86,12 @@ function createKeywords() {
     const keywordsDiv = document.getElementById('keywords');
     keywordsDiv.innerHTML = '';
     
-    const predefinedKeywords = [
-        "צילום", "סמארטפון", "מצלמה", "עדשה", "תאורה", "קומפוזיציה",
-        "חשיפה", "מיקוד", "זום", "פנורמה", "דיוקן", "רצף",
-        "פלאש", "עריכה", "אפקטים", "טשטוש", "רקע", "פוקוס",
-        "אייפון", "אנדרואיד", "ניקוי", "סלפי"
-    ];
+            const predefinedKeywords = [
+                "צילום", "מצלמה", "עדשה", "תאורה", "קומפוזיציה",
+                "חשיפה", "מיקוד", "זום", "פנורמה", "דיוקן", "רצף",
+                "פלאש", "עריכה", "אפקטים", "טשטוש", "רקע", "פוקוס",
+                "אייפון", "אנדרואיד", "ניקוי", "סמארטפון", "סלפי"
+            ];
     
     predefinedKeywords.forEach(keyword => {
         const keywordSpan = document.createElement('span');
