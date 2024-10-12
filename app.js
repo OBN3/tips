@@ -4,13 +4,18 @@ async function fetchTopics() {
     try {
         const response = await fetch('https://obn3.github.io/tips/topics.json');
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        topics = await response.json();
+        const text = await response.text(); // קודם נקבל את התוכן כטקסט
+        console.log("Raw JSON:", text); // נדפיס את הטקסט הגולמי לקונסול
+        topics = JSON.parse(text); // ננסה לפרסר את הטקסט ל-JSON
         displayTopics();
         createKeywords();
     } catch (error) {
         console.error('Error fetching topics:', error);
+        if (error instanceof SyntaxError) {
+            console.error('JSON parsing error. Raw content:', error.message);
+        }
     }
 }
 
