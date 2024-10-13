@@ -225,25 +225,49 @@
         }
 
         function generateKeywords() {
-            const allWords = topics.flatMap(topic => 
-                (topic.title + ' ' + stripHtml(topic.content)).toLowerCase().split(/\s+/)
-            );
+            const allText = topics.map(topic => topic.title + ' ' + stripHtml(topic.content)).join(' ');
+            const extractedPhrases = extractPhrases(allText.toLowerCase());
+            
+            const allWords = allText
+                .toLowerCase()
+                .replace(/[^\u0590-\u05FF\w\s]/g, ' ')
+                .split(/\s+/);
+
             const wordCounts = allWords.reduce((acc, word) => {
-                if (word.length > 3) {
+                if (word.length > 3 && !isStopWord(word)) {
                     acc[word] = (acc[word] || 0) + 1;
                 }
                 return acc;
             }, {});
-            keywords = Object.entries(wordCounts)
+
+            const sortedWords = Object.entries(wordCounts)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 20)
                 .map(entry => entry[0]);
+
+            keywords = [...new Set([...extractedPhrases, ...sortedWords])].slice(0, 20);
         }
 
         function stripHtml(html) {
             let tmp = document.createElement("DIV");
             tmp.innerHTML = html;
             return tmp.textContent || tmp.innerText || "";
+        }
+
+        function isStopWord(word) {
+            const stopWords = new Set([
+                'את', 'של', 'על', 'עם', 'זה', 'זו', 'אלה', 'אלו', 'כי', 'אם',
+                'או', 'גם', 'כל', 'כך', 'רק', 'אבל', 'מה', 'כמה', 'איך', 'מי',
+                'היא', 'הוא', 'הם', 'הן', 'אנחנו', 'אתם', 'אתן', 'להיות', 'יש', 'אין'
+            ]);
+            return stopWords.has(word);
+        }
+
+        function extractPhrases(text) {
+            const phrases = [
+                'צילום רצף', 'חוק השלישים', 'מצב ידני', 'צילום לילה',
+                'עומק שדה', 'מהירות תריס', 'איזון לבן', 'רגישות ISO'
+            ];
+            return phrases.filter(phrase => text.includes(phrase));
         }
 
         function renderKeywords() {
