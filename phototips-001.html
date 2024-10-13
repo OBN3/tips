@@ -81,6 +81,10 @@
             border-radius: 5px;
             margin-top: 10px;
         }
+        .topic-content img {
+            max-width: 100%;
+            height: auto;
+        }
         .copyright {
             text-align: center;
             margin-top: 20px;
@@ -222,7 +226,7 @@
 
         function generateKeywords() {
             const allWords = topics.flatMap(topic => 
-                (topic.title + ' ' + topic.content).toLowerCase().split(/\s+/)
+                (topic.title + ' ' + stripHtml(topic.content)).toLowerCase().split(/\s+/)
             );
             const wordCounts = allWords.reduce((acc, word) => {
                 if (word.length > 3) {
@@ -234,6 +238,12 @@
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 20)
                 .map(entry => entry[0]);
+        }
+
+        function stripHtml(html) {
+            let tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || "";
         }
 
         function renderKeywords() {
@@ -252,7 +262,7 @@
             document.querySelectorAll('.keyword').forEach(k => k.classList.remove('selected'));
             keywordElement.classList.add('selected');
             const filteredTopics = topics.filter(topic => 
-                topic.title.toLowerCase().includes(keyword) || topic.content.toLowerCase().includes(keyword)
+                topic.title.toLowerCase().includes(keyword) || stripHtml(topic.content).toLowerCase().includes(keyword)
             );
             renderFilteredTopics(filteredTopics);
         }
@@ -260,7 +270,7 @@
         function filterTopics() {
             const searchTerm = document.getElementById('search').value.toLowerCase();
             const filteredTopics = topics.filter(topic => 
-                topic.title.toLowerCase().includes(searchTerm) || topic.content.toLowerCase().includes(searchTerm)
+                topic.title.toLowerCase().includes(searchTerm) || stripHtml(topic.content).toLowerCase().includes(searchTerm)
             );
             renderFilteredTopics(filteredTopics);
         }
