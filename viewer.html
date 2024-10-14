@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TubeList - צפייה</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #player {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+        #current-playlist {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>TubeList - צפייה</h1>
+    <div id="player"></div>
+    <div id="current-playlist"></div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let playlists = [];
+        let schedules = [];
+        let currentPlaylist = null;
+        let currentVideoIndex = -1;
+        let player;
+
+        // פונקציה לטעינת הנתונים מקובץ JSON
+        async function loadData() {
+            try {
+                const response = await fetch('tubelist_data.json');
+                const data = await response.json();
+                playlists = data.playlists;
+                schedules = data.schedules;
+                checkSchedule();
+            } catch (error) {
+                console.error('שגיאה בטעינת הנתונים:', error);
+            }
+        }
+
+        // פונקציה לבדיקת לוח הזמנים
+        function checkSchedule() {
+            const now = new Date();
+            schedules.forEach(schedule => {
+                const scheduleTime = new Date(schedule.datetime);
+                if (now >= scheduleTime && now < new Date(scheduleTime.getTime() + 60000)) {
+                    startPlaylist(schedule.playlistIndex);
+                }
+            });
+        }
+
+        // פונקציה להתחלת הפעלת רשימת צפייה
+        function startPlaylist(index) {
+            currentPlaylist = playlists[index];
+            currentVideoIndex = 0;
+            playCurrentVideo();
+            updateCurrentPlaylistDisplay();
+        }
+
+        // פונקציה להפעלת הסרטון הנוכחי
+        function playCurrentVideo() {
+            if (currentPlaylist && currentVideoIndex < currentPlaylist.videos.length) {
+                const video = currentPlaylist.videos[currentVideoIndex];
+                player.loadVideoByUrl(video.url);
+            }
+        }
+
+        // פונקציה לעדכון תצוגת הרשימה הנוכחית
+        function updateCurrentPlaylistDisplay() {
+            const display = document.getElementById('current-playlist');
+            if (currentPlaylist) {
+                display.innerHTML = `מקרין כעת: ${currentPlaylist.name} - ${currentPlaylist.videos[currentVideoIndex].title}`;
+            } else {
+                display.innerHTML = 'אין רשימת צפייה פעילה';
+            }
+        }
+
+        // אתחול נגן YouTube
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '360',
+                width: '640',
+                videoId: '',
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            loadData();
+            setInterval(checkSchedule, 60000); // בדוק כל דקה
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.ENDED) {
+                playNextVideo();
+            }
+        }
+
+        function playNextVideo() {
+            if (currentPlaylist && currentVideoIndex < currentPlaylist.videos.length - 1) {
+                currentVideoIndex++;
+                playCurrentVideo();
+                updateCurrentPlaylistDisplay();
+            }
+        }
+
+        // טען את הנתונים בעת טעינת הדף
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=395, initial-scale=1.0">
+    <title>TubeList - ניהול</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #FFFFFF;
+            color: #333333;
+            width: 395px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #FF0000;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #e60000;
+        }
+
+        input[type='text'], input[type='date'], input[type='time'], input[type='password'] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .playlist-item, .video-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+
+        .playlist-item button, .video-item button {
+            width: auto;
+            padding: 5px 10px;
+            margin-left: 5px;
+        }
+
+        #admin-login {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>TubeList - ניהול</h1>
+    </header>
+    <main>
+        <section id="admin-login">
+            <input type="password" id="admin-password" placeholder="סיסמת מנהל">
+            <button id="admin-login-btn">כניסת מנהל</button>
+        </section>
+
+        <section id="admin-panel" style="display:none;">
+            <h2>פאנל ניהול</h2>
+            <input type="text" id="new-playlist-name" placeholder="שם רשימת הצפייה החדשה">
+            <button id="create-playlist-btn">צור רשימת צפייה חדשה</button>
+            <select id="playlist-select"></select>
+            <input type="text" id="video-url" placeholder="קישור לסרטון YouTube">
+            <input type="text" id="video-title" placeholder="כותרת הסרטון">
+            <button id="add-video-btn">הוסף סרטון</button>
+            <input type="date" id="schedule-date">
+            <input type="time" id="schedule-time">
+            <button id="schedule-playlist-btn">תזמן רשימת צפייה</button>
+            <button id="save-to-github-btn">שמור לגיטהאב</button>
+            <button id="load-from-github-btn">טען מגיטהאב</button>
+            <button id="save-local-json-btn">שמור JSON מקומי</button>
+        </section>
+
+        <section id="playlists-table">
+            <h2>רשימות הקרנה</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>שם רשימה</th>
+                        <th>רשימת סרטונים</th>
+                        <th>זמן הקרנה</th>
+                        <th>פעולות</th>
+                    </tr>
+                </thead>
+                <tbody id="playlists-table-body">
+                    <!-- תוכן הטבלה יתווסף כאן דינמית -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        let playlists = [];
+        let schedules = [];
+
+        // הגדרות גיטהאב
+        const owner = 'YOUR_GITHUB_USERNAME';
+        const repo = 'YOUR_REPO_NAME';
+        const path = 'tubelist_data.json';
+        const fullToken = 'YOUR_GITHUB_TOKEN';
+
+        // פונקציות עזר
+        function savePlaylists() {
+            localStorage.setItem('playlists', JSON.stringify(playlists));
+        }
+
+        function saveSchedules() {
+            localStorage.setItem('schedules', JSON.stringify(schedules));
+        }
+
+        function updatePlaylistSelect() {
+            const select = document.getElementById('playlist-select');
+            select.innerHTML = '';
+            playlists.forEach((playlist, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = playlist.name;
+                select.appendChild(option);
+            });
+        }
+
+        function updatePlaylistsTable() {
+            const tableBody = document.getElementById('playlists-table-body');
+            tableBody.innerHTML = '';
+            playlists.forEach((playlist, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = playlist.name;
+                row.insertCell(1).textContent = playlist.videos.map(v => v.title).join(', ');
+                const scheduleTime = schedules.find(s => s.playlistIndex == index)?.datetime || 'לא נקבע';
+                row.insertCell(2).textContent = scheduleTime;
+                const actionsCell = row.insertCell(3);
+                const editButton = document.createElement('button');
+                editButton.textContent = 'ערוך';
+                editButton.onclick = () => editPlaylist(index);
+                actionsCell.appendChild(editButton);
+            });
+        }
+
+        // פונקציות ניהול
+        function createPlaylist() {
+            const name = document.getElementById('new-playlist-name').value;
+            if (name) {
+                playlists.push({ name, videos: [] });
+                savePlaylists();
+                updatePlaylistSelect();
+                updatePlaylistsTable();
+                document.getElementById('new-playlist-name').value = '';
+            }
+        }
+
+        function addVideo() {
+            const playlistIndex = document.getElementById('playlist-select').value;
+            const url = document.getElementById('video-url').value;
+            const title = document.getElementById('video-title').value;
+            if (playlistIndex !== '' && url && title) {
+                playlists[playlistIndex].videos.push({ url, title });
+                savePlaylists();
+                updatePlaylistsTable();
+                document.getElementById('video-url').value = '';
+                document.getElementById('video-title').value = '';
+            }
+        }
+
+        function schedulePlaylist() {
+            const playlistIndex = document.getElementById('playlist-select').value;
+            const date = document.getElementById('schedule-date').value;
+            const time = document.getElementById('schedule-time').value;
+            if (playlistIndex !== '' && date && time) {
+                const existingScheduleIndex = schedules.findIndex(s => s.playlistIndex == playlistIndex);
+                if (existingScheduleIndex !== -1) {
+                    schedules[existingScheduleIndex].datetime = `${date}T${time}`;
+                } else {
+                    schedules.push({ playlistIndex, datetime: `${date}T${time}` });
+                }
+                saveSchedules();
+                updatePlaylistsTable();
+            }
+        }
+
+        function editPlaylist(index) {
+            // כאן תוכל להוסיף לוגיקה לעריכת רשימת הקרנה
+            console.log('עריכת רשימה:', playlists[index].name);
+        }
+
+        // פונקציות גיטהאב
+        async function getFileSHA() {
+            const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                headers: {
+                    'Authorization': `token ${fullToken}`,
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                return data.sha;
+            }
+            return null;
+        }
+
+        async function saveToGithub() {
+            try {
+                const currentSHA = await getFileSHA();
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify({ playlists, schedules }, null, 2))));
+
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${fullToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Update TubeList data',
+                        content: content,
+                        sha: currentSHA,
+                    }),
+                });
+
+                if (!response.ok) {
+                    if (response.status === 409) {
+                        console.log('Conflict detected, retrying with updated data');
+                        await loadFromGithub();
+                        await saveToGithub();
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                } else {
+                    console.log('Data saved successfully to GitHub');
+                    saveLocalJson(); // שמירת JSON מקומי לאחר שמירה מוצלחת לגיטהאב
+                }
+            } catch (error) {
+                console.error('Error saving to GitHub:', error);
+                alert('שגיאה בשמירת הנתונים לשרת. הנתונים נשמרו מקומית.');
+                savePlaylists();
+                saveSchedules();
+            }
+        }
+
+        async function loadFromGithub() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                    headers: {
+                        'Authorization': `token ${fullToken}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                playlists = content.playlists;
+                schedules = content.schedules;
+                updatePlaylistSelect();
+                updatePlaylistsTable();
+                console.log('Data loaded successfully from GitHub');
+                saveLocalJson(); // שמירת JSON מקומי לאחר טעינה מוצלחת מגיטהאב
+            } catch (error) {
+                console.error('Error loading from GitHub:', error);
+                alert('שגיאה בטעינת הנתונים מהשרת. טוען נתונים מקומיים.');
+                playlists = JSON.parse(localStorage.getItem('playlists')) || [];
+                schedules = JSON.parse(localStorage.getItem('schedules')) || [];
+            }
+        }
+
+        // פונקציה לשמירת JSON מקומי
+        function saveLocalJson() {
+            const data = JSON.stringify({ playlists, schedules }, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tubelist_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // מאזיני אירועים
+        document.getElementById('admin-login-btn').addEventListener('click', () => {
+            const password = document.getElementById('admin-password').value;
+            if (password === 'admin123') { // סיסמה לדוגמה, יש להחליף במערכת אמיתית
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('admin-login').style.display = 'none';
+            }
+        });
+
+        document.getElementById('create-playlist-btn').addEventListener('click', createPlaylist);
+        document.getElementById('add-video-btn').addEventListener('click', addVideo);
+        document.getElementById('schedule-playlist-btn').addEventListener('click', schedulePlaylist);
+        document.getElementById('save-to-github-btn').addEventListener('click', saveToGithub);
+        document.getElementById('load-from-github-btn').addEventListener('click', loadFromGithub);
+        document.getElementById('save-local-json-btn').addEventListener('click', saveLocalJson);
+
+        // אתחול
+        loadFromGithub();
+    </script>
+</body>
+</html>

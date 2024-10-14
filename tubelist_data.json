@@ -1,0 +1,60 @@
+{
+  "playlists": [
+    {
+      "name": "test001",
+      "videos": [
+        {
+          "url": "https://youtu.be/-jDHxQW7Tnw?si=pbv5zoH0B1IbFNkg",
+          "title": "Mindmaps"
+        },
+        {
+          "url": "https://youtu.be/_9PZjx5vOXo?si=m7XKACFqpHhbCj40",
+          "title": "Remote Iphone"
+        },
+        {
+          "url": "https://youtu.be/_9PZjx5vOXo?si=m7XKACFqpHhbCj40",
+          "title": "test"
+        },
+        {
+          "url": "https://youtu.be/-jDHxQW7Tnw?si=pbv5zoH0B1IbFNkg",
+          "title": "test2"
+        },
+        {
+          "url": "https://youtu.be/_9PZjx5vOXo?si=m7XKACFqpHhbCj40",
+          "title": "test1"
+        },
+        {
+          "url": "https://youtu.be/-jDHxQW7Tnw?si=pbv5zoH0B1IbFNkg",
+          "title": "test2"
+        }
+      ]
+    },
+    {
+      "name": "Test02",
+      "videos": [
+        {
+          "url": "https://youtu.be/_9PZjx5vOXo?si=m7XKACFqpHhbCj40",
+          "title": "test"
+        },
+        {
+          "url": "https://youtu.be/_9PZjx5vOXo?si=m7XKACFqpHhbCj40",
+          "title": "test 2"
+        }
+      ]
+    },
+    {
+      "name": "test1",
+      "videos": []
+    }
+  ],
+  "schedules": [
+    {
+      "playlistIndex": "0",
+      "datetime": "2024-10-14T07:54"
+    },
+    {
+      "playlistIndex": "1",
+      "datetime": "2024-10-14T07:31"
+    }
+  ]
+}
